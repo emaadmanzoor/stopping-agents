@@ -14,42 +14,9 @@ redirect_from: "/"
 {: style="margin-top: 1.8rem;"}
 Stopping Agents is an [open-source](https://github.com/emaadmanzoor/stopping-agents/) framework for developing language agents that learn to optimally stop conversations. It provides a custom Gym environment instantiated from conversation transcripts along with state-of-the-art algorithm implementations, providing an easy entry point to research and development. 
 
-For more instructions and resources, visit the
-[GitHub repository](https://github.com/emaadmanzoor/stopping-agents).
-
 <hr/>
+*Made with ❤ by [Emaad Manzoor](http://emaadmanzoor.com/),
+[Eva Ascarza](http://www.evaascarza.com/), &
+[Oded Netzer](https://www.columbia.edu/~on2110/).*
 
-## Installation
 
-```
-pip install stoppingagents
-```
-
-## Example
-
-The example Python code below trains a behavioral cloning agent on a dataset
-of sales conversations.
-
-```python
-from stopping_agents.env import SalesCallEnv
-from stopping_agents.behavioral_cloning import BehavioralCloningAgent
-
-# Initialize the environment with your dataset and parameters
-env = SalesCallEnv(
-    dataset=your_dataset,
-    time_checkpoints=[60, 90],
-    cost_per_second=0.0025,
-    benefit_per_sale=1.0
-)
-
-# Create and train the agent
-agent = BehavioralCloningAgent(env.action_space)
-agent.train(your_dataset)
-
-# Evaluate the agent
-obs, _ = env.reset()
-done = False
-while not done:
-    action = agent.predict(obs)
-    obs, reward, done, _, _ = env.step(action)
-```
