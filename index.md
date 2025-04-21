@@ -17,5 +17,3 @@ Stopping Agents is an [open-source](https://github.com/emaadmanzoor/stopping-age
 *Made with ❤ by [Emaad Manzoor](http://emaadmanzoor.com/),
 [Eva Ascarza](http://www.evaascarza.com/), &
 [Oded Netzer](https://www.columbia.edu/~on2110/).*
-
-
