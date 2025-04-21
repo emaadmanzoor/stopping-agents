@@ -2,7 +2,6 @@
 layout: page
 homepage: True
 title: Home
-redirect_from: "/"
 ---
 
 {: style="margin-top: 0.5rem; margin-bottom: 0;"}
