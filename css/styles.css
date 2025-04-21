@@ -1,6 +1,15 @@
+@import "corner.css";
+
 body {
     padding-left: 8%;
-    background-color: #fff;
+    background-color: #fcfaf8;
+}
+
+.github-ribbon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  border: 0;
 }
 
 .alert {
@@ -132,6 +141,8 @@ blockquote p {
 }
 
 pre {
+    border-left: 1px solid #ccc;
+    background: #f8f8f8;
     white-space: pre;
 }
 

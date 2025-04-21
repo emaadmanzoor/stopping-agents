@@ -1,12 +1,14 @@
 url: "http://stoppingagents.com"
 name: Stopping Agents
 description: Stopping Agents
-author_image_path: /images/logo.jpg
+author_image_path: /images/logo.png
 
 # Markdown rendering
 kramdown:
   #  smart_quotes: apos,apos,quot,quot
   parse_block_html: true
+
+highlighter: rouge
 
 # Site settings
 permalink: /blog/:year/:month/:day/:title/
