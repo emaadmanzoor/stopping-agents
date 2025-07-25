@@ -1,7 +1,7 @@
 ---
 layout: page
-permalink: /implementation/
-title: Implementation
+permalink: /code/
+title: Code 
 ---
 
 {: style="margin-top: 0.5rem; margin-bottom: 0;"}
@@ -10,7 +10,7 @@ title: Implementation
 {: style="margin-top: 0.25rem;"}
 *Language agents for optimal stopping*
 
-## Implementation
+## Code
 
 We provide reference implementations of stopping agents
 parameterized with various open-source large language models
