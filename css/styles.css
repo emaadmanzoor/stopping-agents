@@ -185,9 +185,13 @@ pre > code {
     margin-bottom: 0;
 }
 
-.footnotes {
-  font-size: 0.8em;
+.footnotes p {
+  font-size: 0.9em;
   line-height: 1.5em;
+}
+
+h3 {
+  margin-top: 2.75rem;
 }
 
 @media (max-width: 767px) {
