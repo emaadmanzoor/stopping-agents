@@ -23,4 +23,7 @@ The list of notebooks is below:
 | ------------ | --------------- | -------- |
 | Llama 3.2 3B | Behavioral Cloning | [Llama 3.2 3B + BC](https://github.com/emaadmanzoor/stopping-agents/blob/main/notebooks/llama_3.2_3B_BC.ipynb) |
 
+If you are interested in contributing a new stopping agent, please reach out
+to *emaadmanzoor@cornell.edu* or [open an issue](https://github.com/emaadmanzoor/stopping-agents/issues).
+
 <hr/>
