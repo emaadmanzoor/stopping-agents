@@ -21,3 +21,9 @@ and our paper on [learning when to quit in sales conversatons](#).
    * emaadmanzoor@cornell.edu
    * eascarza@hbs.edu
    * onetzer@gsb.columbia.edu
+
+## Acknowledgements
+
+We thank OpenAI for API credits and acknowledge financial support from
+the [Cornell Atkinson Center for Sustainability](https://www.atkinson.cornell.edu/)
+and the [U.S. National Science Foundation](https://www.nsf.gov/).
