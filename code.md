@@ -16,14 +16,14 @@ We provide reference implementations of stopping agents
 parameterized with various open-source large language models
 and trained using different approaches as Jupyter notebooks.
 
-The list of notebooks is below:
+The list of available notebooks is below:
 
 {:class="pure-table" style="font-size: 1.2rem;"}
 | Policy Model | Training Method | Notebook |
 | ------------ | --------------- | -------- |
 | Llama 3.2 3B | Behavioral Cloning | [Llama 3.2 3B + BC](https://github.com/emaadmanzoor/stopping-agents/blob/main/notebooks/llama_3.2_3B_BC.ipynb) |
 
-If you are interested in contributing a new stopping agent, please reach out
-to *emaadmanzoor@cornell.edu* or [open an issue](https://github.com/emaadmanzoor/stopping-agents/issues).
+If you are interested in contributing a new stopping agent notebook, please reach out
+to *emaadmanzoor@cornell.edu* or [open a Github issue](https://github.com/emaadmanzoor/stopping-agents/issues).
 
 <hr/>
