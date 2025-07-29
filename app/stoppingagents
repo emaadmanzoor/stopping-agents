@@ -12,7 +12,7 @@ import argparse
 
 from textual.app import App, ComposeResult
 from textual.reactive import reactive
-from textual.widgets import Static, Sparkline
+from textual.widgets import Static, RichLog
 
 from rich.align import Align
 from rich.box import DOUBLE
@@ -80,7 +80,7 @@ class CenterLeft(Static):
                     line.append("  ")
             lines.append(line)
         details = Text()
-        details.append(f"File: {self.filename}\n", style="bold")
+        details.append(f"File: {self.filename}\n")
         details.append(f"Time: {self.elapsed} / {self.total}\n\n")
         for line in lines:
             details.append(line)
@@ -175,9 +175,16 @@ class BottomLeft(Static):
         return Panel(forecast, title="Stopping Advice")
 
 
-class RightPanel(Static):
-    def render(self):
-        return "Right Panel Spanning Two Rows"
+class RightPanel(RichLog):
+    def __init__(self, **kwargs):
+        super().__init__(markup=True, wrap=True, **kwargs)
+        self.max_lines = 1000  # Keep a reasonable buffer size
+
+    def add_segment(self, start, end, speaker, text):
+        timestamp = f"{start:.2f}-{end:.2f}"
+        speaker_label = f"[bold #af5f5f][{speaker}][/]"
+        log_line = f"{timestamp} {speaker_label} {text}"
+        self.write(log_line)
 
 class StoppingAgentsDemoApp(App):
     BINDINGS = [("q", "quit", "Quit")]
@@ -191,6 +198,11 @@ class StoppingAgentsDemoApp(App):
 
     #right_panel {
         row-span: 3;
+        background: $background; 
+        border: solid white;
+        padding: 0 0 0 1;
+        scrollbar-background: white;
+        scrollbar-color: #af5f5f; 
     }
 
     .box {
@@ -216,6 +228,10 @@ class StoppingAgentsDemoApp(App):
                 time.sleep(0.5)
         Thread(target=update_time, daemon=True).start()
 
+        right_panel = self.query_one("#right_panel", RightPanel)
+        right_panel.write("Conversation Log\n")
+        
+        Thread(target=log_dummy_conversation, args=(right_panel,), daemon=True).start()
 
     def compose(self) -> ComposeResult:
         yield TopLeft(id="top_left",  classes="box")
@@ -263,6 +279,18 @@ def get_bar_frames(wav_file, num_bars, fps):
         bar_heights = [max(1, min(4, int(val / max_rms * 4))) for val in bar_vals]
         bars_per_frame.append(bar_heights)
     return bars_per_frame, total_windows / fps
+
+def log_dummy_conversation(right_panel):
+    sample_utterances = [
+        (0.00, 1.24, 0, "Hello, this is John from Acme Corp."),
+        (1.25, 3.10, 1, "Hi John, what can I help you with?"),
+        (3.15, 5.00, 0, "I'm calling about your recent inquiry."),
+        (5.10, 7.50, 1, "Yes, I had some questions."),
+        (7.55, 9.00, 0, "Of course, let me explain…"),
+    ]
+    for start, end, speaker, text in sample_utterances:
+        right_panel.add_segment(start, end, f"Speaker {speaker}", text)
+        time.sleep(1)  # Simulate real-time arrival
 
 if __name__ == "__main__":
     args = parse_args()
