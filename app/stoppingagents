@@ -1,0 +1,276 @@
+#!/usr/bin/env python3
+
+# Test with terminal size 92x25 for now
+
+import math
+import time
+import random
+import numpy as np
+import sounddevice as sd
+import wave
+import argparse
+
+from textual.app import App, ComposeResult
+from textual.reactive import reactive
+from textual.widgets import Static, Sparkline
+
+from rich.align import Align
+from rich.box import DOUBLE
+from rich.console import Group
+from rich.panel import Panel
+from rich.text import Text
+
+from threading import Thread
+
+class CenterLeft(Static):
+    elapsed = reactive("00:00")
+    total = reactive("02:00")  # Will be set in on_mount
+    filename = reactive("call.wav")
+    bar_heights = reactive([0] * 20)
+    current_time = reactive(0)
+
+    def __init__(self, wav_file, bar_frames, total_time, fps, **kwargs):
+        super().__init__(**kwargs)
+        self.wav_file = wav_file
+        self.bar_frames = bar_frames
+        self.total_time = total_time
+        self.fps = fps
+        self._playback_started = False
+
+    def on_mount(self):
+        # Set total display time
+        self.total = time.strftime("%M:%S", time.gmtime(self.total_time))
+        self.filename = self.wav_file
+
+        def animate():
+            import sounddevice as sd
+            import wave
+
+            # Playback audio
+            if not self._playback_started:
+                with wave.open(self.wav_file, "rb") as wf:
+                    audio = wf.readframes(wf.getnframes())
+                    sd.play(np.frombuffer(audio, dtype=np.int16), wf.getframerate())
+                self._playback_started = True
+
+            n_frames = len(self.bar_frames)
+            for t in range(n_frames):
+                self.elapsed = time.strftime("%M:%S", time.gmtime(t / self.fps))
+                self.bar_heights = self.bar_frames[t]
+                self.current_time = int(t / self.fps)
+                self.refresh()
+                time.sleep(1.0 / self.fps)
+        Thread(target=animate, daemon=True).start()
+
+    def render(self):
+        lines = []
+        for row in range(4, 0, -1):  # top to bottom
+            line = Text()
+            for height in self.bar_heights:
+                if height >= row:
+                    # Assign color based on height
+                    if height >= 4:
+                        color = "#af5f5f"
+                    elif height == 3:
+                        color = "#af5f5f"
+                    else:
+                        color = "#af5f5f"
+                    line.append("█ ", style=color)
+                else:
+                    line.append("  ")
+            lines.append(line)
+        details = Text()
+        details.append(f"File: {self.filename}\n", style="bold")
+        details.append(f"Time: {self.elapsed} / {self.total}\n\n")
+        for line in lines:
+            details.append(line)
+            details.append("\n")
+        return Panel(Align.center(details), title="Call Audio")
+
+class TopLeft(Static):
+    def render(self):
+        logo = Text.assemble(
+            ("🛑", "bold red"),
+            ("  Stopping Agents", "bold"),
+            (" 0.1", "white"),
+            ("\n    Language agents for optimal stopping", "italic"),
+            ("\n    "),
+            ("https://stoppingagents.com", "underline"),
+        )
+        return Panel(Align.center(logo))
+
+class BottomLeft(Static):
+    current_time = reactive(0)
+    forecast_status = reactive({15: None, 30: None, 45: None})
+    spinner_frames = ["⠁", "⠂", "⠄", "⡀", "⢀", "⠠", "⠐", "⠈"]
+    frame = reactive(0)
+    _active_t = reactive(15)  # Track which t is active for "awaiting forecast"
+
+    def on_mount(self):
+        def animate():
+            while True:
+                self.frame = (self.frame + 1) % len(self.spinner_frames)
+                self.refresh()
+                time.sleep(0.2)
+        Thread(target=animate, daemon=True).start()
+
+    def watch_current_time(self, value: int) -> None:
+        # Start LLM simulation at the first t where value >= t and forecast is None
+        for t_check in [15, 30, 45]:
+            if value >= t_check and self.forecast_status[t_check] is None:
+                Thread(target=self.delayed_forecast, args=(t_check,), daemon=True).start()
+                self._active_t = t_check
+                break
+
+    def delayed_forecast(self, t_check):
+        time.sleep(random.uniform(0.5, 2.0))  # Simulate LLM delay
+        forecasts = {
+            15: "[WAIT]",
+            30: "[WAIT]",
+            45: "[QUIT]"
+        }
+        # Update the dict reference to trigger reactivity
+        new_status = self.forecast_status.copy()
+        new_status[t_check] = forecasts[t_check]
+        self.forecast_status = new_status
+        # Move to next t (handled by watch_current_time on tick)
+
+    def _progress_bar(self, frac, width=30):
+        done = int(frac * width)
+        left = width - done
+        return "" + "█" * done + " " * left + ""
+
+    def render(self):
+        t = self.current_time
+        forecast = Text()
+        forecast.append("\n")
+
+        # If we haven't hit t=15 yet, show only spinner
+        if t < 15:
+            frac = t / 15
+            bar = self._progress_bar(frac)
+            forecast.append(f"Waiting for first decision point\n{bar}\n", style="grey50")
+        else:
+            # Show one row per t; only show spinner for the current active t
+            for i, t_check in enumerate([15, 30, 45]):
+                timestamp = time.strftime("%M:%S", time.gmtime(t_check))
+                next_t = [15, 30, 45][i+1] if i + 1 < 3 else None
+                if self.forecast_status[t_check] is not None:
+                    line = f"[{timestamp}] Received Advice: {self.forecast_status[t_check]}\n"
+                    forecast.append(line)
+
+                    if next_t is not None and t < next_t:
+                        frac = (t - t_check) / (next_t - t_check)
+                        bar = self._progress_bar(frac)
+                        forecast.append(f"\nWaiting for next decision point\n{bar}\n", style="grey50")
+                        break
+                    elif next_t is None:
+                        forecast.append(f"\nNo more decision points.\n", style="grey50")
+                        break
+                elif t >= t_check and self._active_t == t_check:
+                    line = f"[{timestamp}] Awaiting advice {self.spinner_frames[self.frame]}\n"
+                    forecast.append(line, style="grey50")
+                    break  # Only one active spinner at a time
+
+        return Panel(forecast, title="Stopping Advice")
+
+
+class RightPanel(Static):
+    def render(self):
+        return "Right Panel Spanning Two Rows"
+
+class StoppingAgentsDemoApp(App):
+    BINDINGS = [("q", "quit", "Quit")]
+
+    CSS = """
+    Screen {
+        layout: grid;
+        grid-size: 2 3;
+        grid-rows: 20% 40% 40%;
+    }
+
+    #right_panel {
+        row-span: 3;
+    }
+
+    .box {
+        height: 100%;
+    }
+    """
+
+    def __init__(self, wav_file, bar_frames, total_time, fps, **kwargs):
+        super().__init__(**kwargs)
+        self.wav_file = wav_file
+        self.bar_frames = bar_frames
+        self.total_time = total_time
+        self.fps = fps
+
+    def on_mount(self):
+        self.theme = "textual-dark"
+        center_left = self.query_one("#center_left", CenterLeft)
+        bottom_left = self.query_one("#bottom_left", BottomLeft)
+
+        def update_time():
+            while True:
+                bottom_left.current_time = center_left.current_time
+                time.sleep(0.5)
+        Thread(target=update_time, daemon=True).start()
+
+
+    def compose(self) -> ComposeResult:
+        yield TopLeft(id="top_left",  classes="box")
+        yield RightPanel(id="right_panel", classes="box")
+        yield CenterLeft(id="center_left", classes="box",
+                         wav_file=self.wav_file,
+                         bar_frames=self.bar_frames,
+                         total_time=self.total_time,
+                         fps=self.fps)
+        yield BottomLeft(id="bottom_left", classes="box")
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Stopping Agents TUI")
+    parser.add_argument("--audio-file", help="Path to .wav audio file", required=True)
+    parser.add_argument("--bars", type=int, default=20, help="Number of bars in the visualization")
+    parser.add_argument("--framerate", type=int, default=6, help="Frames per second for animation")
+    return parser.parse_args()
+
+def get_bar_frames(wav_file, num_bars, fps):
+    with wave.open(wav_file, "rb") as wf:
+        n_channels = wf.getnchannels()
+        sampwidth = wf.getsampwidth()
+        framerate = wf.getframerate()
+        n_frames = wf.getnframes()
+        raw = wf.readframes(n_frames)
+        audio = np.frombuffer(raw, dtype=np.int16)
+        if n_channels > 1:
+            audio = audio[::n_channels]
+    # Normalize to [-1, 1]
+    audio = audio.astype(np.float32) / np.iinfo(np.int16).max
+    window_size = int(framerate / fps)
+    total_windows = len(audio) // window_size
+    bars_per_frame = []
+    for i in range(total_windows):
+        start = i * window_size
+        end = start + window_size
+        chunk = audio[start:end]
+        if len(chunk) < window_size:
+            chunk = np.pad(chunk, (0, window_size - len(chunk)))
+        # Split into N bars, compute RMS for each
+        bar_chunks = np.array_split(chunk, num_bars)
+        bar_vals = [np.sqrt(np.mean(b**2)) for b in bar_chunks]
+        # Map RMS to 1–4
+        max_rms = max(bar_vals) if max(bar_vals) > 0 else 1e-5
+        bar_heights = [max(1, min(4, int(val / max_rms * 4))) for val in bar_vals]
+        bars_per_frame.append(bar_heights)
+    return bars_per_frame, total_windows / fps
+
+if __name__ == "__main__":
+    args = parse_args()
+    bar_frames, total_time = get_bar_frames(args.audio_file, args.bars, args.framerate)
+    app = StoppingAgentsDemoApp(
+        wav_file=args.audio_file,
+        bar_frames=bar_frames,
+        total_time=total_time,
+        fps=args.framerate,
+    )
+    app.run()
