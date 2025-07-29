@@ -1,29 +1,21 @@
-# Stopping Agents
-<img src="https://stoppingagents.com/images/logo-transparent.png" height="200" align="right"/>
+# Stopping Agents Demo App
+<img src="https://stoppingagents.com/images/logo-transparent.png" height="150" align="right"/>
 
-*Language agents for optimal stopping*
+> [!WARNING]  
+> This is work-in-progress, largely vibe-coded with [Codex CLI](https://github.com/openai/codex), and not performant.
 
-Stopping agents are language agents — large language models that
-generate *decisions* — specialized for optimal stopping of conversations.
-Specifically, stopping agents observe the ongoing conversation text and
-make sequential `wait` or `quit` decisions that optimally tradeoff between waiting
-to accumulate more information and incurring waiting costs.
+We built a Rich/Textual TUI to showcase stopping agents that optimally stop
+sales conversations. To try this out, simply run the command below in this directory:
 
-For more details on the underlying theory and reference implementation, check out our website at [stoppingagents.com](https://stoppingagents.com/)
-and our paper on [learning when to quit in sales conversatons](#).
+```
+./stoppingagents --audio-file [PATH TO A RECORDED SALES CALL .WAV]
+```
 
-## Citation
+## TODO
 
-> Manzoor, Emaad, and Ascarza, Eva and Netzer, Oded. "Learning When to Quit in Sales Conversations." arXiv preprint arXiv:????.????? (2025).
-
-## Contact
-
-   * emaadmanzoor@cornell.edu
-   * eascarza@hbs.edu
-   * onetzer@gsb.columbia.edu
-
-## Acknowledgements
-
-We thank OpenAI for API credits and acknowledge financial support from
-the [Cornell Atkinson Center for Sustainability](https://www.atkinson.cornell.edu/)
-and the [U.S. National Science Foundation](https://www.nsf.gov/).
+- [ ] Add listening to a live audio stream
+- [ ] Find and fix performance issues
+- [ ] Fix responsivity to terminal size
+- [ ] Make deployable and installable
+- [ ] Document installation and usage
+- [ ] Add more user configuration options
