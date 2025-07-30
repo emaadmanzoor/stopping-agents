@@ -4,10 +4,10 @@
 > [!WARNING]  
 > This is work-in-progress, largely vibe-coded with [Codex CLI](https://github.com/openai/codex), and not performant.
 
-We built a Rich/Textual TUI to showcase stopping agents that optimally stop
-sales conversations. To try this out, simply run the command below in this directory:
+We built a [Rich](https://github.com/Textualize/rich)/[Textual](https://github.com/textualize/textual/) TUI app to showcase stopping agents that optimally stop sales conversations. To try this out, simply run the commands below in this directory:
 
 ```
+export STOPPING_AGENT_API_URL="URL OF vLLM SERVER"
 ./stoppingagents --audio-file [PATH TO A RECORDED SALES CALL .WAV]
 ```
 
