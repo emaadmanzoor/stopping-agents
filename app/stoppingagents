@@ -13,6 +13,7 @@ import argparse
 from textual.app import App, ComposeResult
 from textual.reactive import reactive
 from textual.widgets import Static
+from textual.containers import ScrollableContainer
 
 from rich.align import Align
 from rich.box import DOUBLE
@@ -169,24 +170,29 @@ class BottomLeft(Static):
 
 
 class RightPanel(Static):
+    """A static container for a scrollable conversation log with fixed title border."""
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._log_lines = []
-        self.max_lines = 7 # hard-coded, fix later
+        self._log_lines: list[str] = []
+        self.border_title = "Conversation Log"
 
-    def add_segment(self, start, end, speaker, text):
+    def on_mount(self) -> None:
+        # Create a scrollable area inside the static border for conversation log content
+        self._scrollable = ScrollableContainer(classes="scroll")
+        # Inner static widget to render the conversation log lines
+        self._log = Static("", expand=True)
+        self.mount(self._scrollable)
+        self._scrollable.mount(self._log)
+
+    def add_segment(self, start: float, end: float, speaker: str, text: str) -> int:
         timestamp = f"\n[#af5f5f][{start:.2f}-{end:.2f}][/]"
         self._log_lines.append(f"{timestamp} {text}")
-        if len(self._log_lines) > self.max_lines:
-            self._log_lines = self._log_lines[-self.max_lines :]
-        self.refresh()
+        self._update_body()
+        self._scrollable.scroll_end(animate=False)
         return len(self._log_lines) - 1
 
-    def render(self):
-        body = Text("\n").join(Text.from_markup(line) for line in self._log_lines)
-        return Panel(body, title="Conversation Log")
-
-    def update_segment(self, index, text):
+    def update_segment(self, index: int, text: str) -> None:
         line = self._log_lines[index]
         end = line.find("[/]")
         if end != -1:
@@ -194,7 +200,12 @@ class RightPanel(Static):
         else:
             ts = line.split("]", 1)[0] + "]"
         self._log_lines[index] = f"{ts} {text}"
-        self.refresh()
+        self._update_body()
+        self._scrollable.scroll_end(animate=False)
+
+    def _update_body(self) -> None:
+        body = Text("\n").join(Text.from_markup(line) for line in self._log_lines)
+        self._log.update(body)
 
 class StoppingAgentsDemoApp(App):
     BINDINGS = [("q", "quit", "Quit")]
@@ -211,6 +222,13 @@ class StoppingAgentsDemoApp(App):
         padding: 0 0 0 1;
         background: $background;
         max_height: 30;
+        width: 100%;
+        border: round white;
+    }
+
+    .scroll {
+        scrollbar-color: #af5f5f; 
+        scrollbar-size-vertical: 1;
     }
 
     .box {
@@ -232,11 +250,6 @@ class StoppingAgentsDemoApp(App):
         center_left = self.query_one("#center_left", CenterLeft)
         bottom_left = self.query_one("#bottom_left", BottomLeft)
 
-        def update_time():
-            while True:
-                bottom_left.current_time = center_left.current_time
-                time.sleep(0.5)
-        Thread(target=update_time, daemon=True).start()
 
         right_panel = self.query_one("#right_panel", RightPanel)
 
@@ -252,8 +265,10 @@ class StoppingAgentsDemoApp(App):
                         segments, _ = self.whisper_model.transcribe(chunk_path, beam_size=5)
                         real_text = " ".join(seg.text for seg in segments).strip()
                     except Exception as e:
-                        text = f"[ASR error] {e}"
+                        real_text = f"[ASR error] {e}"
                     right_panel.update_segment(idx, real_text)
+                    # Update forecast trigger based on transcript accumulation, not playback
+                    bottom_left.current_time = end_s
             Thread(target=run_chunked_asr, daemon=True).start()
         else:
             # Fallback to dummy conversation thread
