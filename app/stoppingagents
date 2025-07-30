@@ -9,6 +9,7 @@ import numpy as np
 import sounddevice as sd
 import wave
 import argparse
+import requests
 
 from textual.app import App, ComposeResult
 from textual.reactive import reactive
@@ -117,17 +118,49 @@ class BottomLeft(Static):
                 break
 
     def delayed_forecast(self, t_check):
-        time.sleep(random.uniform(0.5, 2.0))  # Simulate LLM delay
-        forecasts = {
-            15: "[WAIT]",
-            30: "[WAIT]",
-            45: "[QUIT]"
-        }
-        # Update the dict reference to trigger reactivity
+        server_url = os.getenv("STOPPING_AGENT_API_URL")
+        if not server_url:
+            # Fallback to dummy advice with simulated delay
+            time.sleep(random.uniform(2, 4.0))
+            forecasts = {15: "[WAIT]", 30: "[WAIT]", 45: "[QUIT]"}
+            new_status = self.forecast_status.copy()
+            new_status[t_check] = forecasts[t_check]
+            self.forecast_status = new_status
+            return
+        # Gather transcript from conversation log
+        time.sleep(0.1)
+        try:
+            raw_lines = getattr(self, 'right_panel', None)
+            lines = []
+            if raw_lines:
+                for entry in self.right_panel._log_lines:
+                    if "Transcribing" in entry:
+                        continue
+                    parts = entry.split("] ", 1)
+                    lines.append(parts[1] if len(parts) > 1 else entry)
+            transcript = "\n".join(lines)
+            prompt = (
+                transcript
+                + "\n\n"
+                + f"At timestamp {t_check} seconds, should the agent STOP or WAIT? Respond with exactly [QUIT] or [WAIT]."
+            )
+            model = os.getenv("STOPPING_AGENT_MODEL", "gpt-3.5-turbo")
+            response = requests.post(
+                server_url,
+                json={"model": model, "prompt": prompt, "max_tokens": 1, "temperature": 0.0},
+                timeout=10,
+            )
+            response.raise_for_status()
+            data = response.json()
+            text = data.get("choices", [])[0].get("text", "").strip()
+            if not text.startswith("["):
+                text = f"[{text.upper().strip('[]')}]"
+            advice = text
+        except Exception:
+            advice = "[WAIT]"
         new_status = self.forecast_status.copy()
-        new_status[t_check] = forecasts[t_check]
+        new_status[t_check] = advice
         self.forecast_status = new_status
-        # Move to next t (handled by watch_current_time on tick)
 
     def _progress_bar(self, frac, width=30):
         done = int(frac * width)
@@ -249,9 +282,9 @@ class StoppingAgentsDemoApp(App):
 
         center_left = self.query_one("#center_left", CenterLeft)
         bottom_left = self.query_one("#bottom_left", BottomLeft)
-
-
         right_panel = self.query_one("#right_panel", RightPanel)
+        # Associate conversation log for transcript gathering
+        bottom_left.right_panel = right_panel
 
         if self.whisper_model is not None:
             def run_chunked_asr():
