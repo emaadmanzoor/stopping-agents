@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Test with terminal size 92x25 for now
+# Test with terminal size 95x25 for now
 
 import os
 import time
@@ -75,7 +75,8 @@ class CenterLeft(Static):
                     line.append("  ")
             lines.append(line)
         details = Text()
-        details.append(f"File: {self.filename}\n")
+        filename_clean = self.filename.split("/")[-1]
+        details.append(f"Recorded source: {self.filename}\n")
         details.append(f"Time: {self.elapsed} / {self.total}\n\n")
         for line in lines:
             details.append(line)
@@ -121,8 +122,8 @@ class BottomLeft(Static):
         server_url = os.getenv("STOPPING_AGENT_API_URL")
         if not server_url:
             # Fallback to dummy advice with simulated delay
-            time.sleep(random.uniform(2, 4.0))
-            forecasts = {15: "[WAIT]", 30: "[WAIT]", 45: "[QUIT]"}
+            time.sleep(random.uniform(4, 6.0))
+            forecasts = {15: "[WAIT]", 30: "[QUIT]", 45: "[QUIT]"}
             new_status = self.forecast_status.copy()
             new_status[t_check] = forecasts[t_check]
             self.forecast_status = new_status
@@ -323,7 +324,7 @@ class StoppingAgentsDemoApp(App):
 def parse_args():
     parser = argparse.ArgumentParser(description="Stopping Agents TUI")
     parser.add_argument("--audio-file", help="Path to .wav audio file", required=True)
-    parser.add_argument("--bars", type=int, default=20, help="Number of bars in the visualization")
+    parser.add_argument("--bars", type=int, default=22, help="Number of bars in the visualization")
     parser.add_argument("--framerate", type=int, default=6, help="Frames per second for animation")
     parser.add_argument(
         "--gpu",
