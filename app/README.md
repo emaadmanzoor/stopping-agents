@@ -13,8 +13,7 @@ We built a [Rich](https://github.com/Textualize/rich)/[Textual](https://github.c
 The `datasets` folder has an `example_sales_call.wav` extracted from
 [this video](https://www.youtube.com/watch?v=Ms5zYSwoqOs) to test with.
 
-<img width="838" height="604" alt="demo" src="https://github.com/user-attachments/assets/3ec18d87-b8a2-4d5b-b63b-72b0cc6563bf" />
-
+https://github.com/user-attachments/assets/c72acf2d-50f6-46e6-bfac-0666cb7a4221
 
 ## TODO
 
