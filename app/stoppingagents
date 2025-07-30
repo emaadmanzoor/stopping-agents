@@ -172,7 +172,7 @@ class RightPanel(Static):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._log_lines = []
-        self.max_lines = 10 # hard-coded, fix later
+        self.max_lines = 7 # hard-coded, fix later
 
     def add_segment(self, start, end, speaker, text):
         timestamp = f"\n[#af5f5f][{start:.2f}-{end:.2f}][/]"
