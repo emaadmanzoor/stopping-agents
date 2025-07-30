@@ -7,9 +7,12 @@
 We built a Rich/Textual TUI to showcase stopping agents that optimally stop
 sales conversations. To try this out, simply run the command below in this directory:
 
+```bash
+./stoppingagents --audio-file [PATH TO A RECORDED SALES CALL .WAV] [--gpu]
 ```
-./stoppingagents --audio-file [PATH TO A RECORDED SALES CALL .WAV]
-```
+
+The `datasets` folder has an `example_sales_call.wav` extracted from
+[this video](https://www.youtube.com/watch?v=Ms5zYSwoqOs) to test with.
 
 ## TODO
 

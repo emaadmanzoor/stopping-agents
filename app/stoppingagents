@@ -139,12 +139,15 @@ class BottomLeft(Static):
                     parts = entry.split("] ", 1)
                     lines.append(parts[1] if len(parts) > 1 else entry)
             transcript = "\n".join(lines)
+
+            # EDIT prompt and model for you use case below
             prompt = (
                 transcript
                 + "\n\n"
                 + f"At timestamp {t_check} seconds, should the agent STOP or WAIT? Respond with exactly [QUIT] or [WAIT]."
             )
-            model = os.getenv("STOPPING_AGENT_MODEL", "gpt-3.5-turbo")
+            model = os.getenv("STOPPING_AGENT_MODEL", "meta-llama/Llama-3.2-3B")
+
             response = requests.post(
                 server_url,
                 json={"model": model, "prompt": prompt, "max_tokens": 1, "temperature": 0.0},
@@ -322,6 +325,11 @@ def parse_args():
     parser.add_argument("--audio-file", help="Path to .wav audio file", required=True)
     parser.add_argument("--bars", type=int, default=20, help="Number of bars in the visualization")
     parser.add_argument("--framerate", type=int, default=6, help="Frames per second for animation")
+    parser.add_argument(
+        "--gpu",
+        action="store_true",
+        help="Use GPU-accelerated openai-whisper (requires CUDA). Otherwise use CPU faster-whisper.",
+    )
     return parser.parse_args()
 
 def get_bar_frames(wav_file, num_bars, fps):
@@ -366,8 +374,36 @@ def log_dummy_conversation(right_panel):
         right_panel.add_segment(start, end, f"Speaker {speaker}", text)
         time.sleep(1)  # Simulate real-time arrival
 
-def load_whisper_model(model_name: str = None):
-    """Load a whisper model via Faster-Whisper for CPU inference."""
+def load_whisper_model(model_name: str = None, gpu: bool = False):
+    """
+    Load a whisper model. Uses openai-whisper on GPU if gpu=True (requires CUDA),
+    otherwise uses faster-whisper on CPU (requires faster-whisper installed).
+    """
+    if gpu:
+        try:
+            import whisper
+        except ImportError as e:
+            raise RuntimeError("openai-whisper not installed. pip install openai-whisper") from e
+
+        t0 = time.time()
+        model = whisper.load_model(model_name, device="cuda")
+        print(f"[startup] openai-whisper '{model_name}' loaded on GPU in {time.time()-t0:.1f}s", flush=True)
+
+        class OpenAIWhisperAdapter:
+            def __init__(self, model):
+                self.model = model
+
+            def transcribe(self, audio_path, beam_size=5):
+                result = self.model.transcribe(audio_path, beam_size=beam_size)
+                segments = [
+                    type("Segment", (), {"text": seg["text"]})
+                    for seg in result.get("segments", [])
+                ]
+                return segments, result
+
+        return OpenAIWhisperAdapter(model)
+
+    # CPU path via Faster-Whisper
     try:
         from faster_whisper import WhisperModel
     except ImportError as e:
@@ -419,7 +455,9 @@ if __name__ == "__main__":
     args = parse_args()
     bar_frames, total_time = get_bar_frames(args.audio_file, args.bars, args.framerate)
 
-    whisper_model = load_whisper_model(os.getenv("WHISPER_MODEL", "turbo"))
+    whisper_model = load_whisper_model(
+        os.getenv("WHISPER_MODEL", "turbo"), gpu=args.gpu
+    )
 
     app = StoppingAgentsDemoApp(
         wav_file=args.audio_file,
