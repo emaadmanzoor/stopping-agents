@@ -172,10 +172,10 @@ class RightPanel(Static):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._log_lines = []
-        self.max_lines = 1000
+        self.max_lines = 10 # hard-coded, fix later
 
     def add_segment(self, start, end, speaker, text):
-        timestamp = f"[#af5f5f][{start:.2f}-{end:.2f}][/]"
+        timestamp = f"\n[#af5f5f][{start:.2f}-{end:.2f}][/]"
         self._log_lines.append(f"{timestamp} {text}")
         if len(self._log_lines) > self.max_lines:
             self._log_lines = self._log_lines[-self.max_lines :]
@@ -209,6 +209,8 @@ class StoppingAgentsDemoApp(App):
     #right_panel {
         row-span: 3;
         padding: 0 0 0 1;
+        background: $background;
+        max_height: 30;
     }
 
     .box {
