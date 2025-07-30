@@ -10,7 +10,11 @@ make sequential `wait` or `quit` decisions that optimally tradeoff between waiti
 to accumulate more information and incurring waiting costs.
 
 For more details on the underlying theory and reference implementation, check out our website at [stoppingagents.com](https://stoppingagents.com/)
-and our paper on [learning when to quit in sales conversatons](#).
+and our paper on [learning when to quit in sales conversations](#).
+
+As an example of what you can build with stopping agents, below is a demo of stopping agents in action on a recorded sales call (the code for this application is [here](https://github.com/emaadmanzoor/stopping-agents/tree/main/app)):
+
+https://github.com/user-attachments/assets/c72acf2d-50f6-46e6-bfac-0666cb7a4221
 
 ## Citation
 
