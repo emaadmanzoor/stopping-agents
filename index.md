@@ -23,4 +23,6 @@ This software implements the algorithm proposed in [our paper](#):
 {: style="color: #666; font-size: 0.7em; "}
 > Manzoor, Emaad, and Ascarza, Eva and Netzer, Oded. "Learning When to Quit in Sales Conversations." arXiv preprint arXiv:????.????? (2025).
 
+<img src="images/demo.png"/>
+
 <hr/>
