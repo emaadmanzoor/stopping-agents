@@ -2,7 +2,7 @@
 
 # Test with terminal size 92x25 for now
 
-import math
+import os
 import time
 import random
 import numpy as np
@@ -12,7 +12,7 @@ import argparse
 
 from textual.app import App, ComposeResult
 from textual.reactive import reactive
-from textual.widgets import Static, RichLog
+from textual.widgets import Static
 
 from rich.align import Align
 from rich.box import DOUBLE
@@ -20,7 +20,9 @@ from rich.console import Group
 from rich.panel import Panel
 from rich.text import Text
 
-from threading import Thread
+from threading import Thread, Event
+
+sd.default.latency = 15
 
 class CenterLeft(Static):
     elapsed = reactive("00:00")
@@ -43,14 +45,12 @@ class CenterLeft(Static):
         self.filename = self.wav_file
 
         def animate():
-            import sounddevice as sd
-            import wave
-
             # Playback audio
             if not self._playback_started:
                 with wave.open(self.wav_file, "rb") as wf:
                     audio = wf.readframes(wf.getnframes())
-                    sd.play(np.frombuffer(audio, dtype=np.int16), wf.getframerate())
+                    sd.play(np.frombuffer(audio, np.int16),
+                            wf.getframerate())
                 self._playback_started = True
 
             n_frames = len(self.bar_frames)
@@ -68,14 +68,7 @@ class CenterLeft(Static):
             line = Text()
             for height in self.bar_heights:
                 if height >= row:
-                    # Assign color based on height
-                    if height >= 4:
-                        color = "#af5f5f"
-                    elif height == 3:
-                        color = "#af5f5f"
-                    else:
-                        color = "#af5f5f"
-                    line.append("█ ", style=color)
+                    line.append("█ ", style="#af5f5f")
                 else:
                     line.append("  ")
             lines.append(line)
@@ -149,7 +142,7 @@ class BottomLeft(Static):
         if t < 15:
             frac = t / 15
             bar = self._progress_bar(frac)
-            forecast.append(f"Waiting for first decision point\n{bar}\n", style="grey50")
+            forecast.append(f"Waiting for first decision point {self.spinner_frames[self.frame]}\n", style="grey50")
         else:
             # Show one row per t; only show spinner for the current active t
             for i, t_check in enumerate([15, 30, 45]):
@@ -162,7 +155,7 @@ class BottomLeft(Static):
                     if next_t is not None and t < next_t:
                         frac = (t - t_check) / (next_t - t_check)
                         bar = self._progress_bar(frac)
-                        forecast.append(f"\nWaiting for next decision point\n{bar}\n", style="grey50")
+                        forecast.append(f"\nWaiting for next decision point {self.spinner_frames[self.frame]}\n", style="grey50")
                         break
                     elif next_t is None:
                         forecast.append(f"\nNo more decision points.\n", style="grey50")
@@ -175,16 +168,33 @@ class BottomLeft(Static):
         return Panel(forecast, title="Stopping Advice")
 
 
-class RightPanel(RichLog):
+class RightPanel(Static):
     def __init__(self, **kwargs):
-        super().__init__(markup=True, wrap=True, **kwargs)
-        self.max_lines = 1000  # Keep a reasonable buffer size
+        super().__init__(**kwargs)
+        self._log_lines = []
+        self.max_lines = 1000
 
     def add_segment(self, start, end, speaker, text):
-        timestamp = f"{start:.2f}-{end:.2f}"
-        speaker_label = f"[bold #af5f5f][{speaker}][/]"
-        log_line = f"{timestamp} {speaker_label} {text}"
-        self.write(log_line)
+        timestamp = f"[#af5f5f][{start:.2f}-{end:.2f}][/]"
+        self._log_lines.append(f"{timestamp} {text}")
+        if len(self._log_lines) > self.max_lines:
+            self._log_lines = self._log_lines[-self.max_lines :]
+        self.refresh()
+        return len(self._log_lines) - 1
+
+    def render(self):
+        body = Text("\n").join(Text.from_markup(line) for line in self._log_lines)
+        return Panel(body, title="Conversation Log")
+
+    def update_segment(self, index, text):
+        line = self._log_lines[index]
+        end = line.find("[/]")
+        if end != -1:
+            ts = line[: end + 3]
+        else:
+            ts = line.split("]", 1)[0] + "]"
+        self._log_lines[index] = f"{ts} {text}"
+        self.refresh()
 
 class StoppingAgentsDemoApp(App):
     BINDINGS = [("q", "quit", "Quit")]
@@ -198,11 +208,7 @@ class StoppingAgentsDemoApp(App):
 
     #right_panel {
         row-span: 3;
-        background: $background; 
-        border: solid white;
         padding: 0 0 0 1;
-        scrollbar-background: white;
-        scrollbar-color: #af5f5f; 
     }
 
     .box {
@@ -210,15 +216,17 @@ class StoppingAgentsDemoApp(App):
     }
     """
 
-    def __init__(self, wav_file, bar_frames, total_time, fps, **kwargs):
+    def __init__(self, wav_file, bar_frames, total_time, fps, whisper_model, **kwargs):
         super().__init__(**kwargs)
         self.wav_file = wav_file
         self.bar_frames = bar_frames
         self.total_time = total_time
         self.fps = fps
+        self.whisper_model = whisper_model
 
     def on_mount(self):
         self.theme = "textual-dark"
+
         center_left = self.query_one("#center_left", CenterLeft)
         bottom_left = self.query_one("#bottom_left", BottomLeft)
 
@@ -229,9 +237,25 @@ class StoppingAgentsDemoApp(App):
         Thread(target=update_time, daemon=True).start()
 
         right_panel = self.query_one("#right_panel", RightPanel)
-        right_panel.write("Conversation Log\n")
-        
-        Thread(target=log_dummy_conversation, args=(right_panel,), daemon=True).start()
+
+        if self.whisper_model is not None:
+            def run_chunked_asr():
+                for start_s, end_s, chunk_path in chunk_wav_file(self.wav_file, 5.0):
+                    # Wait for playback to reach the end of the current chunk
+                    while center_left.current_time + 0.05 < end_s:
+                        time.sleep(0.1)
+                    placeholder = "[grey50]Transcribing ...[/]"
+                    idx = right_panel.add_segment(start_s, end_s, "", placeholder)
+                    try:
+                        segments, _ = self.whisper_model.transcribe(chunk_path, beam_size=5)
+                        real_text = " ".join(seg.text for seg in segments).strip()
+                    except Exception as e:
+                        text = f"[ASR error] {e}"
+                    right_panel.update_segment(idx, real_text)
+            Thread(target=run_chunked_asr, daemon=True).start()
+        else:
+            # Fallback to dummy conversation thread
+            Thread(target=log_dummy_conversation, args=(right_panel,), daemon=True).start()
 
     def compose(self) -> ComposeResult:
         yield TopLeft(id="top_left",  classes="box")
@@ -292,13 +316,66 @@ def log_dummy_conversation(right_panel):
         right_panel.add_segment(start, end, f"Speaker {speaker}", text)
         time.sleep(1)  # Simulate real-time arrival
 
+def load_whisper_model(model_name: str = None):
+    """Load a whisper model via Faster-Whisper for CPU inference."""
+    try:
+        from faster_whisper import WhisperModel
+    except ImportError as e:
+        raise RuntimeError("faster-whisper not installed. pip install faster-whisper") from e
+
+    t0 = time.time()
+    model = WhisperModel(
+        model_name,
+        device="cpu",
+        compute_type="int8",
+    )
+    print(f"[startup] Faster-Whisper '{model_name}' loaded in {time.time()-t0:.1f}s", flush=True)
+    return model
+
+def chunk_wav_file(wav_path: str, chunk_duration: float = 5.0):
+    """Yield (start_time_s, end_time_s, chunk_wav_path) for each chunk.
+    Writes chunks to /tmp and overwrites if rerun.
+    """
+    os.makedirs("/tmp", exist_ok=True)
+    with wave.open(wav_path, "rb") as wf:
+        framerate = wf.getframerate()
+        n_channels = wf.getnchannels()
+        sampwidth = wf.getsampwidth()
+        frames_per_chunk = int(chunk_duration * framerate)
+
+        start_time = 0.0
+        chunk_index = 0
+        while True:
+            frames = wf.readframes(frames_per_chunk)
+            if not frames:
+                break
+            # Compute how many frames we actually read in this loop
+            frames_read = len(frames) // (n_channels * sampwidth)
+            duration = frames_read / float(framerate)
+            end_time = start_time + duration
+
+            chunk_path = f"/tmp/sa_chunk_{chunk_index}.wav"
+            with wave.open(chunk_path, "wb") as out:
+                out.setnchannels(n_channels)
+                out.setsampwidth(sampwidth)
+                out.setframerate(framerate)
+                out.writeframes(frames)
+
+            yield start_time, end_time, chunk_path
+            start_time = end_time
+            chunk_index += 1
+
 if __name__ == "__main__":
     args = parse_args()
     bar_frames, total_time = get_bar_frames(args.audio_file, args.bars, args.framerate)
+
+    whisper_model = load_whisper_model(os.getenv("WHISPER_MODEL", "turbo"))
+
     app = StoppingAgentsDemoApp(
         wav_file=args.audio_file,
         bar_frames=bar_frames,
         total_time=total_time,
         fps=args.framerate,
+        whisper_model=whisper_model
     )
     app.run()
