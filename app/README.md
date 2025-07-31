@@ -13,6 +13,8 @@ We built a [Rich](https://github.com/Textualize/rich)/[Textual](https://github.c
 The `datasets` folder has an `example_sales_call.wav` extracted from
 [this video](https://www.youtube.com/watch?v=Ms5zYSwoqOs) to test with.
 
+https://github.com/user-attachments/assets/c72acf2d-50f6-46e6-bfac-0666cb7a4221
+
 ## TODO
 
 - [ ] Add listening to a live audio stream
