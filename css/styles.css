@@ -173,10 +173,9 @@ pre > code {
 }
 
 .content .caption {
-    font-size: 0.8em;
-    line-height: 1.2em;
-    margin: 0 auto 2em auto;
-    width: 80%;
+    font-size: 1em;
+    line-height: 1em;
+    text-align: center;
 }
 
 .content .discuss {

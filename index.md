@@ -23,6 +23,8 @@ This software implements the algorithm proposed in [our paper](#):
 {: style="color: #666; font-size: 0.7em; "}
 > Manzoor, Emaad, and Ascarza, Eva and Netzer, Oded. "Learning When to Quit in Sales Conversations." arXiv preprint arXiv:????.????? (2025).
 
-<img src="images/demo.png"/>
+![demo](images/demo.png)
+Check out our demo [on Github](https://github.com/emaadmanzoor/stopping-agents/)!
+{:.caption}
 
 <hr/>
