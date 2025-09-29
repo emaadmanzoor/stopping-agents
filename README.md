@@ -14,7 +14,7 @@ and our paper on [learning when to quit in sales conversations](#).
 
 **A stopping agent for sales:** As an example of something you can build with stopping agents, check out our [demo app](https://github.com/emaadmanzoor/stopping-agents/tree/main/app) of stopping agents in action providing stopping advice during an outbound sales call.
 
-<img width="100%" alt="demo" src="https://github.com/user-attachments/assets/3ec18d87-b8a2-4d5b-b63b-72b0cc6563bf" />
+<img width="100%" alt="demo" src="https://stoppingagents.com/images/demo.gif" />
 
 ## Citation
 
