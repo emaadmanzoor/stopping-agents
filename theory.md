@@ -13,7 +13,7 @@ title: Theory
 ## Theory
 
 We summarize the theory underlying stopping agents below,
-and delegate to our [paper](#) for a more detailed discussion.
+and delegate to our [paper](https://stoppingagents.com/assets/Learning_When_to_Quit_Selling.pdf) for a more detailed discussion.
 
 ### 1. The Optimal Stopping Objective
 
